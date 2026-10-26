@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+src/config.js
+*.log
+.DS_Store
+
+mutate.py
+fix-st.js
+doctor.js

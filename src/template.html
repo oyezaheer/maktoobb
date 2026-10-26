@@ -1,0 +1,1651 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>maktoobb</title>
+  <meta name="description"
+    content="Notes where every line is timestamped. Works offline in your browser and syncs across devices.">
+  <meta property="og:title" content="Jotclock">
+  <meta property="og:description"
+    content="Notes where every line is timestamped. Works offline and syncs across devices.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0b1022">
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%90%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #e9edf3;
+      --panel: #ffffff;
+      --panel2: #f1f4f8;
+      --fg: #14192b;
+      --muted: #6b7388;
+      --line: #dde2ec;
+      --accent: #f2b705;
+      --accent-ink: #1a1400;
+      --sel: rgba(60, 100, 255, 0.22);
+      --tag-l: 36%;
+      --danger: #c4372b;
+      color-scheme: light;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #060914;
+        --panel: #0b1022;
+        --panel2: #131a33;
+        --fg: #e9ecf6;
+        --muted: #7f89a8;
+        --line: #1b2342;
+        --accent: #f2b705;
+        --accent-ink: #1a1400;
+        --sel: rgba(120, 150, 255, 0.3);
+        --tag-l: 72%;
+        --danger: #ff7a6e;
+        color-scheme: dark;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #060914;
+      --panel: #0b1022;
+      --panel2: #131a33;
+      --fg: #e9ecf6;
+      --muted: #7f89a8;
+      --line: #1b2342;
+      --accent: #f2b705;
+      --accent-ink: #1a1400;
+      --sel: rgba(120, 150, 255, 0.3);
+      --tag-l: 72%;
+      --danger: #ff7a6e;
+      color-scheme: dark;
+    }
+
+    :root {
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px);
+      height: 100%;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: inherit;
+    }
+
+    body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #root {
+      height: 100%;
+      padding: 16px;
+    }
+
+    button,
+    input,
+    textarea {
+      font-family: inherit;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .app {
+      position: relative;
+      height: 100%;
+      display: flex;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    /* sidebar */
+    .sidebar {
+      width: 290px;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .side-head {
+      padding: 16px 18px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .side-head h1 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .side-head .count {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .notes {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 12px 12px;
+    }
+
+    .note-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      color: inherit;
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 12px;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+
+    .note-item:hover {
+      background: var(--panel2);
+    }
+
+    .note-item.on {
+      background: var(--panel2);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .note-item .nt {
+      font-weight: 600;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .note-item .nm {
+      color: var(--muted);
+      font-size: 12.5px;
+      margin: 2px 0 3px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    .note-item .np {
+      color: var(--muted);
+      font-size: 13.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .side-foot {
+      border-top: 1px solid var(--line);
+      padding: 12px 18px;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .side-foot .sync-line {
+      color: var(--fg);
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .side-foot .foot-note {
+      margin-top: 10px;
+    }
+
+    .modal .sub {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 12px;
+    }
+
+    .modal .err {
+      color: var(--danger);
+      font-size: 14px;
+      margin: 8px 0 0;
+    }
+
+    .input {
+      display: block;
+      width: 100%;
+      margin: 0 0 10px;
+      padding: 9px 12px;
+      font-size: 15px;
+      background: var(--panel2);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    /* main */
+    .main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .toolbar .grow {
+      flex: 1;
+    }
+
+    .search {
+      width: 100%;
+      max-width: 280px;
+      background: var(--panel2);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 7px 12px;
+      font-size: 14px;
+    }
+
+    .search::placeholder {
+      color: var(--muted);
+    }
+
+    .btn {
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 7px 12px;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--panel2);
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-color: transparent;
+      font-weight: 600;
+    }
+
+    .btn.primary:hover {
+      filter: brightness(1.06);
+    }
+
+    .btn.danger {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .menu-btn {
+      display: none;
+    }
+
+    .scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px 32px 96px;
+    }
+
+    .doc {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .title {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: var(--fg);
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      padding: 0;
+      margin: 0 0 6px;
+    }
+
+    .title::placeholder {
+      color: var(--muted);
+    }
+
+    .title:focus-visible {
+      outline: none;
+    }
+
+    .tagbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 6px 0 4px;
+    }
+
+    .chip {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 12.5px;
+      line-height: 1;
+      padding: 5px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      color: hsl(var(--h) 65% var(--tag-l));
+      background: hsl(var(--h) 80% 55% / 0.14);
+    }
+
+    .chip:hover {
+      background: hsl(var(--h) 80% 55% / 0.24);
+    }
+
+    .chip.on {
+      border-color: hsl(var(--h) 70% 55%);
+    }
+
+    .dayhead {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin: 28px 0 8px;
+    }
+
+    .log>div:first-child>.dayhead {
+      margin-top: 14px;
+    }
+
+    .log {
+      --tsw: 8.4ch;
+    }
+
+    .log.ms {
+      --tsw: 12.6ch;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 2px 0;
+    }
+
+    .ts {
+      flex: none;
+      width: var(--tsw);
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      line-height: 26px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ts.live {
+      color: var(--accent);
+    }
+
+    .body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .field {
+      position: relative;
+      font-size: 16.5px;
+      line-height: 26px;
+    }
+
+    .mirror,
+    .field textarea {
+      font: inherit;
+      letter-spacing: normal;
+      line-height: inherit;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
+
+    .mirror {
+      min-height: 26px;
+      pointer-events: none;
+      color: var(--fg);
+    }
+
+    .field textarea {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      resize: none;
+      overflow: hidden;
+      background: transparent;
+      color: transparent;
+      caret-color: var(--fg);
+      outline: none;
+    }
+
+    .field textarea::placeholder {
+      color: var(--muted);
+      opacity: 0.8;
+    }
+
+    .field textarea::selection {
+      background: var(--sel);
+      color: transparent;
+    }
+
+    .tag {
+      color: hsl(var(--h) 65% var(--tag-l));
+      background: hsl(var(--h) 80% 55% / 0.14);
+      border-radius: 3px;
+    }
+
+    .thumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 6px 0 6px;
+    }
+
+    .thumb {
+      position: relative;
+    }
+
+    .thumb img {
+      display: block;
+      max-height: 190px;
+      max-width: 100%;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+    }
+
+    .thumb button {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 0;
+      background: rgba(10, 14, 28, 0.72);
+      color: #fff;
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+
+    .thumb:hover button,
+    .thumb button:focus-visible {
+      opacity: 1;
+    }
+
+    @media (hover: none) {
+      .thumb button {
+        opacity: 1;
+      }
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 18px 0 0 calc(var(--tsw) + 16px);
+      max-width: 46ch;
+    }
+
+    /* results */
+    .results-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0 4px;
+      color: var(--muted);
+      font-size: 14px;
+      flex-wrap: wrap;
+    }
+
+    .res-row {
+      display: flex;
+      gap: 16px;
+      padding: 5px 0;
+      align-items: baseline;
+    }
+
+    .res-text {
+      flex: 1;
+      min-width: 0;
+      font-size: 16.5px;
+      line-height: 26px;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+
+    .res-note {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 12.5px;
+      color: var(--muted);
+      background: var(--panel2);
+      border: 0;
+      border-radius: 6px;
+      padding: 2px 8px;
+      cursor: pointer;
+    }
+
+    .res-note:hover {
+      color: var(--fg);
+    }
+
+    .tag-btn {
+      border: 0;
+      font: inherit;
+      cursor: pointer;
+      padding: 0;
+      color: hsl(var(--h) 65% var(--tag-l));
+      background: hsl(var(--h) 80% 55% / 0.14);
+      border-radius: 3px;
+    }
+
+    /* modal */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 16, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 30;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 480px;
+      max-height: 100%;
+      overflow-y: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px 22px;
+    }
+
+    .modal.wide {
+      max-width: 640px;
+    }
+
+    .modal h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .setting:first-of-type {
+      border-top: 0;
+    }
+
+    .setting .lbl {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .setting .sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .switch {
+      flex: none;
+      width: 42px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel2);
+      position: relative;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform 0.15s, background 0.15s;
+    }
+
+    .switch[aria-checked="true"] {
+      background: var(--accent);
+      border-color: transparent;
+    }
+
+    .switch[aria-checked="true"]::after {
+      transform: translateX(18px);
+      background: var(--accent-ink);
+    }
+
+    .seg {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      overflow: hidden;
+      flex: none;
+    }
+
+    .seg button {
+      background: transparent;
+      color: var(--fg);
+      border: 0;
+      padding: 6px 11px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .seg button+button {
+      border-left: 1px solid var(--line);
+    }
+
+    .seg button[aria-pressed="true"] {
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .export-area {
+      width: 100%;
+      height: 260px;
+      resize: vertical;
+      background: var(--panel2);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 12px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      transform: translateX(-50%);
+      background: var(--fg);
+      color: var(--bg);
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 40;
+    }
+
+    .banner {
+      background: var(--danger);
+      color: #fff;
+      font-size: 13.5px;
+      padding: 8px 16px;
+    }
+
+    .backdrop {
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      #root {
+        padding: 0;
+      }
+
+      .app {
+        border-radius: 0;
+        border: 0;
+      }
+
+      .sidebar {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 20;
+        width: min(86%, 320px);
+        transform: translateX(-100%);
+        transition: transform 0.18s ease-out;
+        box-shadow: none;
+      }
+
+      .sidebar.open {
+        transform: none;
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.35);
+      }
+
+      .backdrop.open {
+        display: block;
+        position: absolute;
+        inset: 0;
+        background: rgba(4, 7, 16, 0.5);
+        z-index: 15;
+      }
+
+      .menu-btn {
+        display: inline-block;
+      }
+
+      .scroll {
+        padding: 16px 16px 96px;
+      }
+
+      .row {
+        gap: 12px;
+      }
+
+      .toolbar {
+        padding: 8px 10px;
+        flex-wrap: wrap;
+      }
+
+      .hide-sm {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .sidebar,
+      .switch::after,
+      .thumb button {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.10/dist/dexie.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+  <script>
+    /*__CONFIG__*/
+  </script>
+  <script>
+    /*__CORE__*/
+  </script>
+  <script>
+    /*__SYNC__*/
+  </script>
+  <script>
+    (function () {
+      "use strict";
+      var useState = React.useState, useEffect = React.useEffect, useRef = React.useRef, useMemo = React.useMemo;
+      var h = React.createElement;
+
+      /* ---------- helpers ---------- */
+      function uid() {
+        /* a real version-4 UUID, even on plain http:// addresses (a phone on your Wi-Fi) where crypto.randomUUID is not available */
+        var c = window.crypto;
+        if (c && c.randomUUID) return c.randomUUID();
+        var b = new Uint8Array(16);
+        if (c && c.getRandomValues) c.getRandomValues(b); else for (var i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+        b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+        var hex = Array.prototype.map.call(b, function (x) { return (x + 256).toString(16).slice(1); }).join("");
+        return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20);
+      }
+      var C = NTCore;
+      var fmtTime = C.fmtTime, dayKey = C.dayKey, dayLabel = C.dayLabel, extractTags = C.extractTags, hue = C.hue;
+      function shortWhen(ms) {
+        if (dayKey(ms) === dayKey(Date.now())) return "Today at " + fmtTime(ms).slice(0, 5);
+        return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      }
+      function isNarrow() { return window.innerWidth <= 760; }
+
+      function fileToDataUrl(file, max) {
+        max = max || 1200;
+        return new Promise(function (resolve, reject) {
+          var fr = new FileReader();
+          fr.onerror = reject;
+          fr.onload = function () {
+            var img = new Image();
+            img.onerror = reject;
+            img.onload = function () {
+              var s = Math.min(1, max / Math.max(img.width, img.height));
+              var c = document.createElement("canvas");
+              c.width = Math.max(1, Math.round(img.width * s));
+              c.height = Math.max(1, Math.round(img.height * s));
+              c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+              resolve(c.toDataURL("image/webp", 0.85));
+            };
+            img.src = fr.result;
+          };
+          fr.readAsDataURL(file);
+        });
+      }
+
+      var noteToText = C.noteToText;
+
+      /* ---------- storage (Dexie / IndexedDB) ---------- */
+      var db = new Dexie("notetime-prototype");
+      db.version(1).stores({ notes: "id,updatedAt", entries: "id,noteId,createdAt", settings: "key" });
+      db.version(2).stores({ notes: "id,updatedAt,dirty", entries: "id,noteId,createdAt,dirty", settings: "key" }).upgrade(function (tx) {
+        return Promise.all([
+          tx.table("notes").toCollection().modify(function (n) { n.deleted = 0; n.dirty = 1; }),
+          tx.table("entries").toCollection().modify(function (e) { e.deleted = 0; e.dirty = 1; e.updatedAt = e.updatedAt || e.createdAt; })
+        ]);
+      });
+      db.on("blocked", function () { window.dispatchEvent(new CustomEvent("nt-db-slow")); });
+      function notDeleted(r) { return !r.deleted; }
+
+      var queue = new Map(), timer = null;
+      function save(table, obj) {
+        if (table !== "settings") obj = Object.assign({}, obj, { updatedAt: Date.now(), dirty: 1 });
+        queue.set(table + ":" + (table === "settings" ? obj.key : obj.id), { table: table, obj: obj });
+        clearTimeout(timer);
+        timer = setTimeout(flush, 250);
+      }
+      function flush() {
+        clearTimeout(timer);
+        var items = Array.from(queue.values());
+        queue.clear();
+        if (!items.length) return Promise.resolve();
+        var worthAnnouncing = items.some(function (it) { return it.table !== "settings"; });
+        return db.transaction("rw", db.notes, db.entries, db.settings, function () {
+          items.forEach(function (it) { db[it.table].put(it.obj); });
+        }).then(function () {
+          if (worthAnnouncing) {
+            announce();
+            window.dispatchEvent(new CustomEvent("nt-local-change"));
+          }
+        }).catch(function (err) {
+          console.error("save failed", err);
+          window.dispatchEvent(new CustomEvent("nt-save-error"));
+        });
+      }
+      function removeRow(table, key) {
+        if (table === "settings") {
+          queue.delete(table + ":" + key);
+          return db.settings.delete(key).catch(function () { });
+        }
+        var pending = queue.get(table + ":" + key);
+        return Promise.resolve(pending ? pending.obj : db[table].get(key)).then(function (cur) {
+          if (cur) save(table, Object.assign({}, cur, { deleted: 1 }));
+        }).catch(function () { });
+      }
+      window.addEventListener("pagehide", flush);
+      var bc = ("BroadcastChannel" in window) ? new BroadcastChannel("notetime") : null;
+      function announce() { if (bc) bc.postMessage({ type: "changed" }); }
+      document.addEventListener("visibilitychange", function () { if (document.hidden) flush(); });
+
+      var DEFAULT_PREFS = { newestTop: false, showMs: false, freeze: "newline", theme: "auto" };
+      var EMPTY_DRAFT = { text: "", images: [], createdAt: null };
+
+      /* ---------- cloud sync (Supabase) ---------- */
+      var NTC = window.NT_CONFIG || {};
+      var sb = null, sbError = "";
+      try {
+        if (window.supabase && NTC.SUPABASE_URL && NTC.SUPABASE_KEY) {
+          sb = window.supabase.createClient(String(NTC.SUPABASE_URL).trim(), String(NTC.SUPABASE_KEY).trim());
+        }
+      } catch (e) { sbError = String((e && e.message) || e); }
+      var SYNC_DELAY = NTC.SYNC_DELAY_MS || 1500;
+      var syncState = { status: sb ? "signed-out" : "unconfigured", user: null, lastAt: null, error: sbError };
+      function setSync(patch) {
+        Object.assign(syncState, patch);
+        window.dispatchEvent(new CustomEvent("nt-sync-status"));
+      }
+
+      var localAdapter = {
+        flush: flush,
+        getDirty: function (table) { return db[table].where("dirty").equals(1).toArray(); },
+        markClean: function (table, rows) {
+          return db.transaction("rw", db[table], function () {
+            return Promise.all(rows.map(function (r) {
+              return db[table].get(r.id).then(function (cur) {
+                if (cur && cur.updatedAt === r.updatedAt) return db[table].update(r.id, { dirty: 0 });
+              });
+            }));
+          });
+        },
+        applyRemote: function (table, row) {
+          return db.transaction("rw", db[table], function () {
+            return db[table].get(row.id).then(function (cur) {
+              if (cur && cur.updatedAt >= row.updatedAt) return false;
+              return db[table].put(row).then(function () { return true; });
+            });
+          });
+        },
+        getCursor: function (key) { return db.settings.get("cursor:" + key).then(function (r) { return r ? r.value : null; }); },
+        setCursor: function (key, value) { return db.settings.put({ key: "cursor:" + key, value: value }); }
+      };
+      var remoteAdapter = sb ? {
+        upsert: function (table, rows) { return sb.from(table).upsert(rows, { onConflict: "id" }); },
+        pull: function (table, cursor, limit) {
+          return sb.from(table).select("*").gt("server_updated_at", cursor).order("server_updated_at", { ascending: true }).limit(limit);
+        }
+      } : null;
+      var engine = sb ? NTSync.createEngine({
+        local: localAdapter, remote: remoteAdapter,
+        onApplied: function () { announce(); window.dispatchEvent(new CustomEvent("nt-reload")); }
+      }) : null;
+
+      var syncing = false, syncQueued = false, syncTimer = null;
+      function triggerSync(delay) {
+        if (!engine || !syncState.user) return;
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(runSync, delay == null ? SYNC_DELAY : delay);
+      }
+      async function runSync() {
+        if (!engine || !syncState.user) return;
+        if (syncing) { syncQueued = true; return; }
+        syncing = true;
+        setSync({ status: "syncing", error: "" });
+        try {
+          var job = function () { return engine.run(syncState.user.id); };
+          if (navigator.locks && navigator.locks.request) await navigator.locks.request("nt-sync", job); else await job();
+          setSync({ status: "synced", lastAt: Date.now() });
+        } catch (err) {
+          setSync({ status: navigator.onLine === false ? "offline" : "error", error: String((err && err.message) || err) });
+        }
+        syncing = false;
+        if (syncQueued) { syncQueued = false; triggerSync(500); }
+      }
+
+      /* the first time an account signs in on this device, upload everything that is already here */
+      async function adoptLocal(userId) {
+        var last = await db.settings.get("sync:lastUser");
+        if (last && last.value === userId) return;
+        if (last) {
+          /* a different account was signed in before: its notes must not leak into this one, and
+             rows cannot be shared between accounts, so start this device from the new account's notes */
+          var junk = (await db.settings.toArray()).map(function (r) { return r.key; }).filter(function (k) {
+            return k.indexOf("draft:") === 0 || k.indexOf("cursor:") === 0;
+          });
+          await db.notes.clear();
+          await db.entries.clear();
+          await db.settings.bulkDelete(junk);
+          await db.settings.put({ key: "sync:lastUser", value: userId });
+          window.dispatchEvent(new CustomEvent("nt-wiped"));
+          announce();
+          window.dispatchEvent(new CustomEvent("nt-reload"));
+          return;
+        }
+        var used = {};
+        (await db.entries.toArray()).forEach(function (e) { used[e.noteId] = 1; });
+        await db.notes.toCollection().modify(function (n) { if (n.title || used[n.id] || n.deleted) n.dirty = 1; });
+        await db.entries.toCollection().modify({ dirty: 1 });
+        await db.settings.put({ key: "sync:lastUser", value: userId });
+      }
+
+      var channel = null;
+      function unsubscribeRealtime() {
+        if (channel) { try { sb.removeChannel(channel); } catch (e) { } channel = null; }
+      }
+      function subscribeRealtime() {
+        unsubscribeRealtime();
+        try {
+          channel = sb.channel("nt-changes")
+            .on("postgres_changes", { event: "*", schema: "public", table: "entries" }, function () { triggerSync(300); })
+            .on("postgres_changes", { event: "*", schema: "public", table: "notes" }, function () { triggerSync(300); })
+            .subscribe();
+        } catch (e) { console.error(e); }
+      }
+      function startSync(user) {
+        var same = (user ? user.id : null) === (syncState.user ? syncState.user.id : null);
+        if (same) return;
+        if (!user) { unsubscribeRealtime(); setSync({ user: null, status: "signed-out", error: "" }); return; }
+        setSync({ user: { id: user.id, email: user.email }, status: "syncing", error: "" });
+        adoptLocal(user.id).then(function () { subscribeRealtime(); runSync(); });
+      }
+      if (sb) {
+        sb.auth.onAuthStateChange(function (evt, session) {
+          setTimeout(function () { startSync(session ? session.user : null); }, 0);
+        });
+        window.addEventListener("nt-local-change", function () { triggerSync(SYNC_DELAY); });
+        window.addEventListener("online", function () { triggerSync(200); });
+        window.addEventListener("offline", function () { if (syncState.user) setSync({ status: "offline" }); });
+        document.addEventListener("visibilitychange", function () { if (!document.hidden) triggerSync(300); });
+        setInterval(function () { if (!document.hidden) triggerSync(0); }, 60000);
+      }
+      /* push anything still waiting, then sign out, so no unsynced edit is left behind */
+      async function signOutSafely() {
+        try { if (engine && syncState.user) await engine.run(syncState.user.id); } catch (e) { }
+        await sb.auth.signOut();
+      }
+      async function authSubmit(mode, email, password) {
+        var res = mode === "signup"
+          ? await sb.auth.signUp({ email: email, password: password })
+          : await sb.auth.signInWithPassword({ email: email, password: password });
+        if (res.error) return { error: res.error.message };
+        if (mode === "signup" && !(res.data && res.data.session)) return { notice: "Check your email to confirm your account, then sign in." };
+        return { ok: true };
+      }
+      function syncLabel(s) {
+        if (s.status === "unconfigured") return s.error ? "Cloud sync setup problem: " + s.error : "Cloud sync is not set up."; if (s.status === "signed-out") return "Not syncing. Sign in to use your notes on other devices.";
+        if (s.status === "syncing") return "Syncing\u2026";
+        if (s.status === "offline") return "Offline. Changes are saved here and will sync later.";
+        if (s.status === "error") return "Sync problem: " + s.error;
+        return "Synced " + (s.lastAt ? fmtTime(s.lastAt).slice(0, 5) : "") + " as " + (s.user ? s.user.email : "");
+      }
+      /* ---------- small components ---------- */
+      function Ts(props) {
+        var s = useState(Date.now()), now = s[0], setNow = s[1];
+        var ms = props.ms, showMs = props.showMs;
+        useEffect(function () {
+          if (ms != null) return;
+          var t;
+          function tick() {
+            setNow(Date.now());
+            t = setTimeout(tick, showMs ? 47 : 1000 - (Date.now() % 1000) + 5);
+          }
+          tick();
+          return function () { clearTimeout(t); };
+        }, [ms, showMs]);
+        return h("span", { className: "ts" + (ms == null ? " live" : "") }, fmtTime(ms == null ? now : ms, showMs));
+      }
+
+      function RichText(props) {
+        var parts = C.splitTags(props.text);
+        return h("span", null, parts.map(function (p, i) {
+          return i % 2
+            ? h("button", { key: i, className: "tag-btn", style: { "--h": hue(p) }, onClick: function () { props.onTag(p.slice(1).toLowerCase()); } }, p)
+            : p;
+        }));
+      }
+
+      function Row(props) {
+        var parts = C.splitTags(props.text);
+        return h("div", { className: "row" },
+          h(Ts, { ms: props.ts, showMs: props.showMs }),
+          h("div", { className: "body" },
+            h("div", { className: "field" },
+              h("div", { className: "mirror", "aria-hidden": "true" },
+                parts.map(function (p, i) {
+                  return i % 2 ? h("span", { key: i, className: "tag", style: { "--h": hue(p) } }, p) : p;
+                }),
+                "\u200b"),
+              h("textarea", {
+                ref: function (el) { props.registerRef(props.id, el); },
+                value: props.text,
+                rows: 1,
+                placeholder: props.isDraft ? "Start writing\u2026" : "",
+                "aria-label": props.isDraft ? "New entry" : "Entry at " + fmtTime(props.ts, props.showMs),
+                onChange: function (e) { props.onText(props.id, e.target.value); },
+                onKeyDown: function (e) { props.onKey(e, props.id); },
+                onPaste: function (e) { props.onPaste(e, props.id); }
+              })),
+            props.images.length ? h("div", { className: "thumbs" }, props.images.map(function (src, i) {
+              return h("div", { className: "thumb", key: i },
+                h("img", { src: src, alt: "Pasted image" }),
+                h("button", { title: "Remove image", "aria-label": "Remove image", onClick: function () { props.onRemoveImage(props.id, i); } }, "\u00d7"));
+            })) : null));
+      }
+
+      function Modal(props) {
+        useEffect(function () {
+          function onKey(e) { if (e.key === "Escape") props.onClose(); }
+          document.addEventListener("keydown", onKey);
+          return function () { document.removeEventListener("keydown", onKey); };
+        }, []);
+        return h("div", { className: "overlay", onMouseDown: function (e) { if (e.target === e.currentTarget) props.onClose(); } },
+          h("div", { className: "modal" + (props.wide ? " wide" : ""), role: "dialog", "aria-modal": "true", "aria-label": props.title },
+            h("h2", null, props.title), props.children));
+      }
+
+      function Switch(props) {
+        return h("button", { className: "switch", role: "switch", "aria-checked": String(!!props.on), "aria-label": props.label, onClick: function () { props.onChange(!props.on); } });
+      }
+      function Seg(props) {
+        return h("div", { className: "seg", role: "group", "aria-label": props.label },
+          props.options.map(function (o) {
+            return h("button", { key: o[0], "aria-pressed": String(props.value === o[0]), onClick: function () { props.onChange(o[0]); } }, o[1]);
+          }));
+      }
+
+      function SettingsModal(props) {
+        var p = props.prefs, set = props.setPref;
+        return h(Modal, { title: "Settings", onClose: props.onClose },
+          h("div", { className: "setting" },
+            h("div", null, h("div", { className: "lbl" }, "Newest entries on top"), h("div", { className: "sub" }, "Reverse the order of entries and days.")),
+            h(Switch, { on: p.newestTop, label: "Newest entries on top", onChange: function (v) { set({ newestTop: v }); } })),
+          h("div", { className: "setting" },
+            h("div", null, h("div", { className: "lbl" }, "Show milliseconds"), h("div", { className: "sub" }, "Adds .000 to every timestamp.")),
+            h(Switch, { on: p.showMs, label: "Show milliseconds", onChange: function (v) { set({ showMs: v }); } })),
+          h("div", { className: "setting" },
+            h("div", null, h("div", { className: "lbl" }, "Freeze timestamp"), h("div", { className: "sub" }, "When a new line gets its time.")),
+            h(Seg, { label: "Freeze timestamp", value: p.freeze, options: [["newline", "On new line"], ["keystroke", "On first keystroke"]], onChange: function (v) { set({ freeze: v }); } })),
+          h("div", { className: "setting" },
+            h("div", null, h("div", { className: "lbl" }, "Theme")),
+            h(Seg, { label: "Theme", value: p.theme, options: [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]], onChange: function (v) { set({ theme: v }); } })),
+          h("div", { className: "modal-actions" }, h("button", { className: "btn primary", onClick: props.onClose }, "Done")));
+      }
+
+      function ExportModal(props) {
+        var s = useState("note"), mode = s[0], setMode = s[1];
+        var ref = useRef(null);
+        var text = useMemo(function () {
+          if (mode === "note") return noteToText(props.note, props.noteEntries, props.showMs);
+          return JSON.stringify({ exportedAt: new Date().toISOString(), notes: props.notes, entries: props.allEntries }, null, 2);
+        }, [mode]);
+        function copy() {
+          var done = function (ok) { props.toast(ok ? "Copied" : "Select the text and copy it manually"); };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallback(); });
+          } else fallback();
+          function fallback() {
+            try { ref.current.focus(); ref.current.select(); done(document.execCommand("copy")); } catch (e) { done(false); }
+          }
+        }
+        return h(Modal, { title: "Export", wide: true, onClose: props.onClose },
+          h("div", { style: { marginBottom: 12 } },
+            h(Seg, { label: "Export format", value: mode, options: [["note", "This note as text"], ["all", "Everything as JSON"]], onChange: setMode })),
+          h("textarea", { ref: ref, className: "export-area", readOnly: true, value: text, "aria-label": "Export contents" }),
+          h("div", { className: "modal-actions" },
+            h("button", { className: "btn", onClick: props.onClose }, "Close"),
+            h("button", { className: "btn primary", onClick: copy }, "Copy")));
+      }
+
+      function AccountModal(props) {
+        var s = props.sync;
+        var f = useState({ email: "", password: "", busy: false, msg: "", err: "" }), form = f[0], setForm = f[1];
+        function patch(p) { setForm(function (prev) { return Object.assign({}, prev, p); }); }
+        async function submit(mode) {
+          patch({ busy: true, msg: "", err: "" });
+          var r = await authSubmit(mode, form.email.trim(), form.password);
+          if (r.error) patch({ busy: false, err: r.error });
+          else if (r.notice) patch({ busy: false, msg: r.notice });
+          else props.onClose();
+        }
+        var body;
+        if (s.status === "unconfigured") {
+          body = h("p", { className: "sub" }, s.error ? "The Supabase settings in src/config.js were rejected: " + s.error + ". The URL must look like https://YOUR-PROJECT-ID.supabase.co" : "Add your Supabase URL and publishable key to src/config.js, then run npm run build.");
+        } else if (s.user) {
+          body = h("div", null,
+            h("p", null, "Signed in as ", h("strong", null, s.user.email)),
+            h("p", { className: "sub" }, syncLabel(s)),
+            h("p", { className: "sub" }, "Signing out keeps your notes on this device. Signing in to a different account replaces them with that account\u2019s notes."),
+            h("div", { className: "modal-actions" },
+              h("button", { className: "btn", onClick: function () { triggerSync(0); } }, "Sync now"),
+              h("button", { className: "btn danger", onClick: function () { signOutSafely(); props.onClose(); } }, "Sign out")));
+        } else {
+          body = h("div", null,
+            h("p", { className: "sub" }, "Sign in to keep the same notes on every device. Your notes stay on this device either way."),
+            h("input", { className: "input", type: "email", placeholder: "Email", autoComplete: "email", "aria-label": "Email", value: form.email, onChange: function (e) { patch({ email: e.target.value }); } }),
+            h("input", { className: "input", type: "password", placeholder: "Password (at least 6 characters)", autoComplete: "current-password", "aria-label": "Password", value: form.password, onChange: function (e) { patch({ password: e.target.value }); } }),
+            form.err ? h("p", { className: "err", role: "alert" }, form.err) : null,
+            form.msg ? h("p", { className: "sub", role: "status" }, form.msg) : null,
+            h("div", { className: "modal-actions" },
+              h("button", { className: "btn", disabled: form.busy, onClick: function () { submit("signup"); } }, "Create account"),
+              h("button", { className: "btn primary", disabled: form.busy, onClick: function () { submit("signin"); } }, "Sign in")));
+        }
+        return h(Modal, { title: "Sync", onClose: props.onClose }, body);
+      }
+      /* ---------- app ---------- */
+      function App() {
+        var st = {
+          ready: useState(false), error: useState(""), persisted: useState(null),
+          notes: useState([]), entries: useState([]), drafts: useState({}), prefs: useState(DEFAULT_PREFS),
+          active: useState(null), filter: useState({ tag: "", query: "" }),
+          ui: useState({ settings: false, exportOpen: false, sidebar: false }),
+          confirmDel: useState(false), toast: useState(""), slow: useState(false),
+          sync: useState(Object.assign({}, syncState))
+        };
+        var ready = st.ready[0], error = st.error[0], persisted = st.persisted[0];
+        var notes = st.notes[0], entries = st.entries[0], drafts = st.drafts[0], prefs = st.prefs[0];
+        var syncUi = st.sync[0];
+        var activeId = st.active[0], filter = st.filter[0], ui = st.ui[0], confirmDel = st.confirmDel[0], toastMsg = st.toast[0];
+
+        var notesRef = useRef([]), entriesRef = useRef([]), draftsRef = useRef({});
+        var prefsRef = useRef(DEFAULT_PREFS);
+        var activeRef = useRef(null);
+        activeRef.current = activeId;
+        var refs = useRef({}), orderRef = useRef([]), scrollRef = useRef(null), toastTimer = useRef(null);
+
+        function setNotes(v) { notesRef.current = v; st.notes[1](v); }
+        function setEntries(v) { entriesRef.current = v; st.entries[1](v); }
+        function setDrafts(v) { draftsRef.current = v; st.drafts[1](v); }
+        function toast(m) { st.toast[1](m); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(function () { st.toast[1](""); }, 2200); }
+        function setUi(patch) { st.ui[1](Object.assign({}, ui, patch)); }
+
+        /* if opening the database takes too long, explain why instead of showing an empty page */
+        useEffect(function () {
+          var show = function () { st.slow[1](true); };
+          var t = setTimeout(show, 3000);
+          window.addEventListener("nt-db-slow", show);
+          return function () { clearTimeout(t); window.removeEventListener("nt-db-slow", show); };
+        }, []);
+        /* init */
+        /* init */
+        useEffect(function () {
+          var onErr = function () { st.error[1]("Saving to this browser failed. Export your notes so nothing is lost."); };
+          window.addEventListener("nt-save-error", onErr);
+          (async function () {
+            try {
+              var ns = (await db.notes.toArray()).filter(notDeleted);
+              var es = (await db.entries.toArray()).filter(notDeleted);
+              var ss = await db.settings.toArray();
+              var p = ss.find(function (s) { return s.key === "prefs"; });
+              var ds = {};
+              ss.forEach(function (s) { if (s.key.indexOf("draft:") === 0) ds[s.key.slice(6)] = s.value; });
+              if (!ns.length) {
+                var n0 = { id: uid(), title: "", createdAt: Date.now(), updatedAt: Date.now(), auto: 1 };
+                await db.notes.put(n0); ns = [n0];
+              }
+              ns.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+              setNotes(ns); setEntries(es); setDrafts(ds);
+              if (p) { prefsRef.current = Object.assign({}, DEFAULT_PREFS, p.value); st.prefs[1](prefsRef.current); }
+              st.active[1](ns[0].id);
+            } catch (err) {
+              st.error[1]("Could not open browser storage. Notes will be lost when you close this tab.");
+              var n1 = { id: uid(), title: "", createdAt: Date.now(), updatedAt: Date.now() };
+              setNotes([n1]); st.active[1](n1.id);
+            }
+            st.ready[1](true);
+            try { if (navigator.storage && navigator.storage.persist) st.persisted[1](await navigator.storage.persist()); } catch (e) { }
+          })();
+          return function () { window.removeEventListener("nt-save-error", onErr); };
+        }, []);
+        /* another tab or another device changed something: reload from the database */
+        useEffect(function () {
+          var refresh = async function () { await flush(); await reloadFromDb(); };
+          if (bc) bc.onmessage = refresh;
+          var onStatus = function () { st.sync[1](Object.assign({}, syncState)); };
+          var onWiped = function () { setDrafts({}); };
+          window.addEventListener("nt-wiped", onWiped);
+          window.addEventListener("nt-reload", refresh);
+          window.addEventListener("nt-sync-status", onStatus);
+          return function () {
+            if (bc) bc.onmessage = null;
+            window.removeEventListener("nt-wiped", onWiped);
+            window.removeEventListener("nt-reload", refresh);
+            window.removeEventListener("nt-sync-status", onStatus);
+          };
+        }, []);
+        async function reloadFromDb() {
+          var ns = (await db.notes.toArray()).filter(notDeleted);
+          var es = (await db.entries.toArray()).filter(notDeleted);
+          var dr = draftsRef.current;
+          function blank(n) {
+            var d = dr[n.id];
+            return !n.title && !es.some(function (e) { return e.noteId === n.id; }) && !(d && (d.text || (d.images && d.images.length)));
+          }
+          if (ns.some(function (n) { return !blank(n); })) {
+            ns.filter(function (n) { return n.auto && blank(n); }).forEach(function (n) { db.notes.delete(n.id); });
+            ns = ns.filter(function (n) { return !(n.auto && blank(n)); });
+          }
+          if (!ns.length) {
+            var fresh = { id: uid(), title: "", createdAt: Date.now(), updatedAt: Date.now(), auto: 1 };
+            await db.notes.put(fresh); ns = [fresh];
+          }
+          ns.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+          setNotes(ns); setEntries(es);
+          if (!ns.some(function (n) { return n.id === activeRef.current; })) st.active[1](ns[0].id);
+        }
+
+        /* theme */
+        useEffect(function () {
+          var r = document.documentElement;
+          if (prefs.theme === "auto") r.removeAttribute("data-theme"); else r.setAttribute("data-theme", prefs.theme);
+        }, [prefs.theme]);
+
+        /* focus + scroll on note switch */
+        useEffect(function () {
+          if (!ready || !activeId) return;
+          var sc = scrollRef.current;
+          if (sc) sc.scrollTop = prefs.newestTop ? 0 : sc.scrollHeight;
+          if (!isNarrow()) focusRow("draft");
+        }, [ready, activeId]);
+
+        function setPref(patch) {
+          var next = Object.assign({}, prefsRef.current, patch);
+          prefsRef.current = next;
+          st.prefs[1](next);
+          save("settings", { key: "prefs", value: next });
+        }
+
+        var note = notes.find(function (n) { return n.id === activeId; }) || null;
+        var draft = (activeId && drafts[activeId]) || EMPTY_DRAFT;
+
+        function getDraft() { return draftsRef.current[activeId] || EMPTY_DRAFT; }
+        function writeDraft(next) {
+          var m = {}; m[activeId] = next;
+          setDrafts(Object.assign({}, draftsRef.current, m));
+          save("settings", { key: "draft:" + activeId, value: next });
+        }
+        function touchNote(noteId) {
+          var now = Date.now();
+          setNotes(notesRef.current.map(function (n) {
+            if (n.id !== noteId) return n;
+            var u = Object.assign({}, n, { updatedAt: now }); save("notes", u); return u;
+          }));
+        }
+        function focusRow(id, where) {
+          requestAnimationFrame(function () {
+            var el = refs.current[id];
+            if (!el) return;
+            el.focus();
+            var p = where === "start" ? 0 : el.value.length;
+            try { el.setSelectionRange(p, p); } catch (e) { }
+            if (el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+          });
+        }
+        function registerRef(id, el) { if (el) refs.current[id] = el; else delete refs.current[id]; }
+
+        /* entry actions */
+        function lastStamp() {
+          var m = 0;
+          entriesRef.current.forEach(function (e) { if (e.noteId === activeId && e.createdAt > m) m = e.createdAt; });
+          return m;
+        }
+        function commitDraft() {
+          var d = getDraft();
+          var text = d.text.replace(/\s+$/, "");
+          if (!text && !d.images.length) return;
+          // var created = C.nextStamp(d.createdAt == null ? Date.now() : d.createdAt, lastStamp());
+          var created = C.nextStamp(prefs.freeze === "newline" || d.createdAt == null ? Date.now() : d.createdAt, lastStamp());
+          var e = { id: uid(), noteId: activeId, createdAt: created, text: text, images: d.images };
+          setEntries(entriesRef.current.concat([e]));
+          save("entries", e);
+          touchNote(activeId);
+          writeDraft({ text: "", images: [], createdAt: C.stampAfterCommit({ freeze: prefs.freeze, now: Date.now(), committed: created }) });
+          focusRow("draft");
+        }
+        function onText(id, text) {
+          if (id === "draft") {
+            var d = getDraft();
+            writeDraft({ text: text, images: d.images, createdAt: C.draftStampOnInput({ createdAt: d.createdAt, text: text, hasImages: d.images.length > 0, freeze: prefs.freeze, now: Date.now() }) });
+          } else {
+            setEntries(entriesRef.current.map(function (e) {
+              if (e.id !== id) return e;
+              var u = Object.assign({}, e, { text: text }); save("entries", u); return u;
+            }));
+            touchNote(activeId);
+          }
+        }
+        function deleteEntry(id) {
+          setEntries(entriesRef.current.filter(function (e) { return e.id !== id; }));
+          removeRow("entries", id);
+          touchNote(activeId);
+        }
+        function imagesOf(id) {
+          if (id === "draft") return getDraft().images;
+          var e = entriesRef.current.find(function (x) { return x.id === id; });
+          return e ? e.images : [];
+        }
+        function setImages(id, imgs) {
+          if (id === "draft") {
+            var d = getDraft();
+            // writeDraft({ text: d.text, images: imgs, createdAt: d.createdAt == null && imgs.length ? Date.now() : d.createdAt });
+            writeDraft({ text: d.text, images: imgs, createdAt: d.createdAt == null && imgs.length && prefs.freeze === "keystroke" ? Date.now() : d.createdAt });
+          } else {
+            setEntries(entriesRef.current.map(function (e) {
+              if (e.id !== id) return e;
+              var u = Object.assign({}, e, { images: imgs }); save("entries", u); return u;
+            }));
+          }
+        }
+        function importLines(txt) {
+          var lines = C.splitPastedLines(txt);
+          var added = C.buildImportEntries(lines, { now: Date.now(), lastStamp: lastStamp(), noteId: activeId, idFn: uid });
+          added.forEach(function (e) { save("entries", e); });
+          setEntries(entriesRef.current.concat(added));
+          touchNote(activeId);
+          toast("Pasted " + added.length + " lines as separate entries");
+        }
+
+        function onKey(e, id) {
+          var el = e.target, isDraft = id === "draft", order = orderRef.current, idx = order.indexOf(id);
+          if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+            e.preventDefault();
+            if (isDraft) commitDraft(); else focusRow("draft");
+            return;
+          }
+          if (e.key === "Backspace" && el.value === "" && !e.nativeEvent.isComposing) {
+            var imgs = imagesOf(id);
+            e.preventDefault();
+            if (imgs.length) { setImages(id, imgs.slice(0, -1)); return; }
+            var target = order[idx - 1] != null ? order[idx - 1] : order[idx + 1];
+            if (!isDraft) deleteEntry(id);
+            if (target != null && target !== id) focusRow(target, "end");
+            return;
+          }
+          if (e.key === "ArrowUp" && !e.shiftKey && el.selectionStart === 0 && el.selectionEnd === 0 && idx > 0) {
+            e.preventDefault(); focusRow(order[idx - 1], "end"); return;
+          }
+          if (e.key === "ArrowDown" && !e.shiftKey && el.selectionStart === el.value.length && el.selectionEnd === el.value.length && idx < order.length - 1) {
+            e.preventDefault(); focusRow(order[idx + 1], "start");
+          }
+        }
+        function onPaste(e, id) {
+          var cd = e.clipboardData;
+          if (!cd) return;
+          var files = [];
+          Array.prototype.forEach.call(cd.items || [], function (it) {
+            if (it.kind === "file" && it.type.indexOf("image/") === 0) { var f = it.getAsFile(); if (f) files.push(f); }
+          });
+          if (files.length) {
+            e.preventDefault();
+            Promise.all(files.map(function (f) { return fileToDataUrl(f).catch(function () { return null; }); })).then(function (urls) {
+              urls = urls.filter(Boolean);
+              if (urls.length) setImages(id, imagesOf(id).concat(urls)); else toast("That image could not be read");
+            });
+            return;
+          }
+          var txt = cd.getData("text");
+          if (txt && C.shouldSplitPaste(txt)) { e.preventDefault(); importLines(txt); }
+        }
+        function removeImage(id, i) { setImages(id, imagesOf(id).filter(function (_, k) { return k !== i; })); }
+
+        /* note actions */
+        function openNote(id) {
+          st.active[1](id); st.filter[1]({ tag: "", query: "" }); st.confirmDel[1](false);
+          setUi({ sidebar: false });
+        }
+        function newNote() {
+          var n = { id: uid(), title: "", createdAt: Date.now(), updatedAt: Date.now() };
+          save("notes", n);
+          setNotes([n].concat(notesRef.current));
+          openNote(n.id);
+        }
+        function setTitle(t) {
+          setNotes(notesRef.current.map(function (n) {
+            if (n.id !== activeId) return n;
+            var u = Object.assign({}, n, { title: t }); save("notes", u); return u;
+          }));
+        }
+        function deleteNote() {
+          if (!confirmDel) { st.confirmDel[1](true); return; }
+          var id = activeId;
+          entriesRef.current.filter(function (e) { return e.noteId === id; }).forEach(function (e) { removeRow("entries", e.id); });
+          removeRow("notes", id); removeRow("settings", "draft:" + id);
+          setEntries(entriesRef.current.filter(function (e) { return e.noteId !== id; }));
+          var rest = notesRef.current.filter(function (n) { return n.id !== id; });
+          var dd = Object.assign({}, draftsRef.current); delete dd[id]; setDrafts(dd);
+          st.confirmDel[1](false);
+          if (rest.length) { setNotes(rest); st.active[1](rest[0].id); }
+          else {
+            var n = { id: uid(), title: "", createdAt: Date.now(), updatedAt: Date.now() };
+            save("notes", n); setNotes([n]); st.active[1](n.id);
+          }
+        }
+
+        /* derived */
+        var noteEntries = useMemo(function () {
+          return entries.filter(function (e) { return e.noteId === activeId; }).sort(function (a, b) { return a.createdAt - b.createdAt; });
+        }, [entries, activeId]);
+        var tagCounts = useMemo(function () { return C.tagCounts(entries, 14); }, [entries]);
+        var filtering = !!(filter.tag || filter.query.trim());
+        var matches = useMemo(function () {
+          if (!filtering) return [];
+          return C.filterEntries({ entries: entries, tag: filter.tag, query: filter.query, newestTop: prefs.newestTop });
+        }, [entries, filter, prefs.newestTop]);
+
+        if (!ready) {
+          return h("div", { className: "app", style: { alignItems: "center", justifyContent: "center" } },
+            st.slow[0] ? h("div", { role: "alert", style: { maxWidth: 440, padding: 24, textAlign: "center", lineHeight: 1.6 } },
+              h("strong", null, "Still opening your notes."),
+              h("p", { style: { color: "var(--muted)" } }, "The app is taking longer than expected to start. Reload the page. If it stays like this, close other tabs of this site and try again, or open the browser console (F12) to see what went wrong.")) : null);
+        }
+
+        var group = C.groupByDay;
+
+        var noteTitleOf = function (n) {
+          if (n.title) return n.title;
+          var first = entries.filter(function (e) { return e.noteId === n.id; }).sort(function (a, b) { return a.createdAt - b.createdAt; })[0];
+          return first ? first.text.split("\n")[0] : "Untitled Note";
+        };
+
+        /* main content */
+        var content;
+        if (filtering) {
+          var rg = group(matches.map(function (e) { return { ts: e.createdAt, e: e }; }));
+          content = h("div", { className: "doc" },
+            h("div", { className: "results-head" },
+              h("span", null, matches.length + (matches.length === 1 ? " line" : " lines"), filter.tag ? " tagged #" + filter.tag : "", filter.query.trim() ? " matching \u201c" + filter.query.trim() + "\u201d" : "", " across all notes"),
+              h("button", { className: "btn", onClick: function () { st.filter[1]({ tag: "", query: "" }); } }, "Clear filter")),
+            h("div", { className: "log" + (prefs.showMs ? " ms" : "") },
+              rg.map(function (g) {
+                return h("div", { key: g.key },
+                  h("div", { className: "dayhead" }, g.label),
+                  g.items.map(function (it) {
+                    var n = notes.find(function (x) { return x.id === it.e.noteId; });
+                    return h("div", { className: "res-row", key: it.e.id },
+                      h("span", { className: "ts" }, fmtTime(it.ts, prefs.showMs)),
+                      h("div", { className: "res-text" },
+                        h(RichText, { text: it.e.text, onTag: function (t) { st.filter[1]({ tag: t, query: filter.query }); } }),
+                        n ? h("button", { className: "res-note", onClick: function () { openNote(n.id); } }, noteTitleOf(n)) : null));
+                  }));
+              })));
+        } else if (note) {
+          var items = noteEntries.map(function (e) { return { ts: e.createdAt, id: e.id, e: e }; });
+          items.push({ ts: draft.createdAt == null ? Date.now() : draft.createdAt, id: "draft", draft: true });
+          var groups = C.arrangeGroups(group(items), prefs.newestTop);
+          orderRef.current = C.flattenOrder(groups);
+          content = h("div", { className: "doc" },
+            h("input", { className: "title", value: note.title, placeholder: "Untitled Note", "aria-label": "Note title", onChange: function (e) { setTitle(e.target.value); } }),
+            tagCounts.length ? h("div", { className: "tagbar", "aria-label": "Tags" }, tagCounts.map(function (t) {
+              return h("button", { key: t[0], className: "chip", style: { "--h": hue(t[0]) }, title: t[1] + " lines", onClick: function () { st.filter[1]({ tag: t[0], query: "" }); } }, "#" + t[0]);
+            })) : null,
+            h("div", { className: "log" + (prefs.showMs ? " ms" : "") },
+              groups.map(function (g) {
+                return h("div", { key: g.key },
+                  h("div", { className: "dayhead" }, g.label),
+                  g.items.map(function (it) {
+                    var isD = !!it.draft;
+                    return h(Row, {
+                      key: it.id, id: it.id, ts: isD ? draft.createdAt : it.ts, showMs: prefs.showMs,
+                      text: isD ? draft.text : it.e.text, images: isD ? draft.images : it.e.images || [],
+                      isDraft: isD, registerRef: registerRef, onText: onText, onKey: onKey, onPaste: onPaste, onRemoveImage: removeImage
+                    });
+                  }));
+              })),
+            !noteEntries.length && !draft.text && !draft.images.length
+              ? h("p", { className: "hint" }, "Type a line and press Enter. Every line is stamped with the time you wrote it. Paste an image to attach it, add #tags anywhere, and paste several lines to split them into entries.")
+              : null);
+        }
+
+        var sortedNotes = notes.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+        var totalEntries = entries.length;
+
+        return h("div", { className: "app" },
+          h("div", { className: "backdrop" + (ui.sidebar ? " open" : ""), onClick: function () { setUi({ sidebar: false }); } }),
+          h("aside", { className: "sidebar" + (ui.sidebar ? " open" : ""), "aria-label": "Notes" },
+            h("div", { className: "side-head" },
+              h("div", null, h("h1", null, "All Notes"), h("div", { className: "count" }, notes.length + (notes.length === 1 ? " note" : " notes"))),
+              h("button", { className: "btn primary", onClick: newNote }, "New note")),
+            h("div", { className: "notes" }, sortedNotes.map(function (n) {
+              var es = entries.filter(function (e) { return e.noteId === n.id; }).sort(function (a, b) { return a.createdAt - b.createdAt; });
+              var last = es[es.length - 1];
+              return h("button", { key: n.id, className: "note-item" + (n.id === activeId && !filtering ? " on" : ""), onClick: function () { openNote(n.id); } },
+                h("div", { className: "nt" }, noteTitleOf(n)),
+                h("div", { className: "nm" }, shortWhen(n.updatedAt)),
+                h("div", { className: "np" }, last ? last.text.split("\n")[0] : "No entries yet"));
+            })),
+            h("div", { className: "side-foot" },
+              h("div", { className: "sync-line", role: "status" }, syncLabel(syncUi)),
+              h("button", { className: "btn", onClick: function () { setUi({ account: true }); } }, syncUi.user ? "Account" : "Sign in to sync"),
+              h("div", { className: "foot-note" },
+                "Stored on this device in IndexedDB. ", totalEntries + (totalEntries === 1 ? " entry" : " entries") + ". ",
+                persisted === true ? "Browser has marked this storage as persistent." : persisted === false ? "Storage is best-effort; export now and then." : ""))),
+          h("div", { className: "main" },
+            error ? h("div", { className: "banner", role: "alert" }, error) : null,
+            h("div", { className: "toolbar" },
+              h("button", { className: "btn menu-btn", "aria-label": "Show notes", onClick: function () { setUi({ sidebar: true }); } }, "Notes"),
+              h("div", { className: "grow" },
+                h("input", {
+                  className: "search", type: "search", placeholder: "Search notes", "aria-label": "Search notes", value: filter.query,
+                  onChange: function (e) { st.filter[1]({ tag: filter.tag, query: e.target.value }); }
+                })),
+              h("button", { className: "btn", onClick: function () { setUi({ exportOpen: true }); } }, "Export"),
+              h("button", { className: "btn", onClick: function () { setUi({ settings: true }); } }, "Settings"),
+              !filtering ? h("button", { className: "btn" + (confirmDel ? " danger" : ""), onClick: deleteNote, onBlur: function () { st.confirmDel[1](false); } }, confirmDel ? "Confirm delete" : "Delete note") : null),
+            h("div", { className: "scroll", ref: scrollRef }, content)),
+          ui.account ? h(AccountModal, { sync: syncUi, onClose: function () { setUi({ account: false }); } }) : null,
+          ui.settings ? h(SettingsModal, { prefs: prefs, setPref: setPref, onClose: function () { setUi({ settings: false }); } }) : null,
+          ui.exportOpen && note ? h(ExportModal, { note: note, noteEntries: noteEntries, notes: notes, allEntries: entries, showMs: prefs.showMs, toast: toast, onClose: function () { setUi({ exportOpen: false }); } }) : null,
+          toastMsg ? h("div", { className: "toast", role: "status" }, toastMsg) : null);
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+    })();
+  </script>
+</body>
+
+</html>
